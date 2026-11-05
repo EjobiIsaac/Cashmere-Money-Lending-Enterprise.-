@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cashmere v11</title>
+<style>
+*{box-sizing:border-box}body{font-family:Arial;margin:0;background:#eef3ee;padding-bottom:90px}
+.loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0b3d20;display:flex;align-items:center;justify-content:center;z-index:9999}
+.loginBox{background:white;padding:20px;border-radius:16px;width:90%;max-width:360px;text-align:center}
+.receiptScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:none;z-index:10000;overflow:auto;padding:16px}
+.btn{width:100%;padding:12px;border:none;border-radius:7px;color:white;font-weight:bold;margin-top:6px;cursor:pointer}
+.btn-green{background:#0b5c2f}.btn-blue{background:#0a4ea3}.btn-orange{background:#e67e22}.btn-purple{background:#6a1b9a}.btn-red{background:#c62828}
+.topBar{background:#062e1a;padding:12px;text-align:center;position:sticky;top:0;z-index:100}
+.center-brand{font-weight:900;font-size:18px;color:white}
+.center-brand small{display:block;font-size:13px;margin-top:3px;color:#3b82f6!important;font-weight:800}
+.blue-name{color:#3b82f6!important}
+.card{background:white;margin:10px auto;padding:16px;border-radius:12px;width:94%;max-width:580px}
+input,select,textarea{width:100%;padding:11px;margin:4px 0 6px;border:1px solid #999;border-radius:6px}
+.calcBox{background:#e8f5e9;border:2px solid #0b5c2f;padding:10px;border-radius:8px;margin:8px 0;text-align:center}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.kpi div{background:#f7f7f7;padding:10px;border-radius:8px;border-left:4px solid #0b5c2f;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ccc;padding:5px}th{background:#0b5c2f;color:white}
+.bottomNav{position:fixed;bottom:0;left:0;width:100%;background:white;display:flex;box-shadow:0 -2px 10px rgba(0,0,0,0.2);z-index:999;border-top:2px solid #0b5c2f}
+.bottomNav button{flex:1;padding:10px 2px;border:none;background:#e0e0e0;font-weight:bold;font-size:11px;margin:1px}
+.bottomNav button.active{background:#0b5c2f!important;color:white!important;border-bottom:4px solid yellow!important}
+.smallBtn{padding:4px 7px;border:none;border-radius:4px;color:white;font-size:11px;cursor:pointer}
+.waBtn{background:#25D366;color:white;border:none;padding:8px 10px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:12px}
+</style>
+<script>
+var clients=[];var loans=[];var repays=[];
+var curLoan=null;var curClient=null;var curLoanIndex=-1;
+var SET={company:'CASHMERE MONEY LENDING',phone:'0784748006',manager:'Isaac Savvy',pass:'1234'};
+try{var s=localStorage.getItem('cashmere_set');if(s)SET=JSON.parse(s);}catch(e){}
+function fmt(n){return Number(n||0).toLocaleString();}
+function saveAll(){localStorage.setItem('sc3_c',JSON.stringify(clients));localStorage.setItem('sc3_l',JSON.stringify(loans));localStorage.setItem('sc3_r',JSON.stringify(repays));localStorage.setItem('cashmere_set',JSON.stringify(SET));}
+function getClient(id){for(var i=0;i<clients.length;i++){if(clients[i].id==id)return clients[i];}return{name:'Unknown',phone:''};}
+function applyBranding(){
+document.getElementById('topCompany').innerHTML=SET.company;
+document.getElementById('topPhone').innerHTML='Management: '+SET.manager+' - Tel: '+SET.phone;
+document.getElementById('dashTitle').innerHTML='💰 '+SET.company;
+document.getElementById('loginTitle').innerHTML='💰 '+SET.company;
+document.getElementById('sCompany').value=SET.company;
+document.getElementById('sPhone').value=SET.phone;
+document.getElementById('sManager').value=SET.manager;
+document.getElementById('curPass').innerText=SET.pass;
+}
+function doLogin(){var p=document.getElementById('loginPass').value;if(p==SET.pass){document.getElementById('loginScreen').style.display='none';}else{alert('Wrong Password! Try: '+SET.pass);}}
+function goPage(p){
+var pages=['dash','clients','loans','repay','overdue','settings'];
+var map={dash:'b1',clients:'b2',loans:'b3',repay:'b4',overdue:'b6',settings:'b5'};
+for(var i=0;i<pages.length;i++){var el=document.getElementById(pages[i]);if(el)el.style.display=(pages[i]==p?'block':'none');}
+var btns=['b1','b2','b3','b4','b5','b6'];
+for(var i=0;i<btns.length;i++){var b=document.getElementById(btns[i]);if(b)b.className=(btns[i]==map[p]?'active':'');}
+window.scrollTo(0,0);
+}
+function cleanPhone(p){p=(p||'').replace(/[^0-9]/g,'');if(p.length==10&&p.charAt(0)=='0')p='256'+p.substring(1);if(p.length==9)p='256'+p;return p;}
+function sendWhatsApp(id){
+var c=getClient(id);var bal=0;var dueStr='';
+for(var i=0;i<loans.length;i++){if(loans[i].clientId==id&&loans[i].status=='Active'){bal+=Number(loans[i].balance);try{dueStr=new Date(loans[i].dueDate).toLocaleDateString();}catch(e){}}}
+var msg='Hello '+c.name+', this is '+SET.company+' - '+SET.manager+'. Reminder: Your balance is UGX '+fmt(bal)+' (Due: '+dueStr+'). Please pay today. Thank you! Tel: '+SET.phone;
+window.open('https://wa.me/'+cleanPhone(c.phone)+'?text='+encodeURIComponent(msg),'_blank');
+}
+function sendWhatsAppLoan(idx){
+var loan=loans[idx];var c=getClient(loan.clientId);
+var msg='Hello '+c.name+', this is '+SET.company+'. Reminder: Your loan balance is UGX '+fmt(loan.balance)+', due '+new Date(loan.dueDate).toLocaleDateString()+'. Please pay today. Thank you! - '+SET.manager+' Tel: '+SET.phone;
+window.open('https://wa.me/'+cleanPhone(c.phone)+'?text='+encodeURIComponent(msg),'_blank');
+}
+function saveSettings(){
+SET.company=document.getElementById('sCompany').value||SET.company;
+SET.phone=document.getElementById('sPhone').value||SET.phone;
+SET.manager=document.getElementById('sManager').value||SET.manager;
+var np=document.getElementById('sPass').value.trim();if(np)SET.pass=np;
+saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
+}
+</script>
+</head>
+<body>
+<div id="loginScreen" class="loginScreen">
+<div class="loginBox">
+<h2 id="loginTitle" style="color:#0b5c2f">💰 CASHMERE MONEY LENDING</h2>
+<p>v11 - Password Protected</p>
+<input id="loginPass" type="password" placeholder="Enter Password: 1234" value="1234">
+<button class="btn btn-green" onclick="doLogin()">🔒 UNLOCK ENTERPRISE</button>
+<p style="font-size:11px;color:#888">Default: 1234</p>
+</div>
+</div>
+<div id="receiptScreen" class="receiptScreen">
+<div id="receiptContent"></div>
+<button class="btn btn-green" onclick="window.print()">🖨️ PRINT RECEIPT</button>
+<button class="btn btn-blue" onclick="document.getElementById('receiptScreen').style.display='none'">⬅️ CLOSE</button>
+</div>
+<div id="exportScreen" class="receiptScreen">
+<h2 style="color:#0b5c2f;text-align:center">📊 EXPORT EXCEL</h2>
+<p id="exportFileName" style="text-align:center;font-size:12px">Cashmere.csv</p>
+<textarea id="exportText" style="height:280px;font-size:11px"></textarea>
+<button class="btn btn-green" onclick="var ta=document.getElementById('exportText');ta.select();try{document.execCommand('copy');alert('COPIED!');}catch(e){alert('Select All Copy');}">📋 COPY</button>
+<button class="btn" style="background:#666" onclick="document.getElementById('exportScreen').style.display='none'">⬅️ CLOSE</button>
+</div>
+<div class="topBar">
+<div class="center-brand"><span id="topCompany" class="blue-name">CASHMERE MONEY LENDING</span>
+<small id="topPhone">Management: Isaac Savvy - Tel: 0784748006</small>
+<small id="dateTop" style="color:#ccc!important;font-weight:400"></small>
+</div>
+<button style="position:absolute;right:10px;top:12px;background:#ffcc33;border:none;padding:7px 10px;border-radius:7px;font-weight:bold" onclick="document.getElementById('loginScreen').style.display='flex'">🚪</button>
+</div>
+<div class="bottomNav">
+<button id="b1" class="active" onclick="goPage('dash')">🏠<br>HOME</button>
+<button id="b2" onclick="goPage('clients')">👥<br>CLIENTS</button>
+<button id="b3" onclick="goPage('loans')">💰<br>LOANS</button>
+<button id="b4" onclick="goPage('repay')">💳<br>REPAY</button>
+<button id="b6" onclick="goPage('overdue')">⚠️<br>OVERDUE</button>
+<button id="b5" onclick="goPage('settings')">⚙️<br>SETTINGS</button>
+</div>
+<div id="dash" class="card">
+<h2 id="dashTitle" style="text-align:center;color:#0b5c2f;margin:0">💰 CASHMERE MONEY LENDING</h2>
+<p style="text-align:center;font-size:11px">v11 - Password + WhatsApp + Blue Center Name!</p>
+<div class="kpi">
+<div><small>👥 CLIENTS</small><br><b id="statC">0</b></div>
+<div><small>💰 ACTIVE</small><br><b id="statA">0</b></div>
+<div><small>📤 GIVEN</small><br><b>UGX <span id="statGiven">0</span></b></div>
+<div><small>💵 COLLECTED</small><br><b>UGX <span id="statColl">0</span></b></div>
+<div><small>⚠️ OUTSTANDING</small><br><b>UGX <span id="statOut">0</span></b></div>
+<div><small>💎 PROFIT</small><br><b>UGX <span id="statProfit">0</span></b></div>
+</div>
+<div id="dashList"></div>
+<hr>
+<button class="btn btn-blue" onclick="exportFullSmall()">📊 EXPORT FULL REPORT</button>
+<button class="btn btn-orange" onclick="exportPaysSmall()">💳 EXPORT PAYMENTS WITH NAMES</button>
+<button class="btn btn-purple" onclick="goPage('overdue')">⚠️ CHECK OVERDUE + WHATSAPP</button>
+</div>
+<div id="clients" class="card" style="display:none">
+<h3>👥 Add Client</h3>
+<label>🔍 Search</label><input placeholder="Type name or phone..." oninput="renderClients(this.value)">
+<label>👤 Full Name *</label><input id="fName" placeholder="James Kasule">
+<label>📞 Telephone *</label><input id="fPhone" placeholder="0701234567">
+<label>📍 Place</label><input id="fLocation" placeholder="Bwaise">
+<button class="btn btn-green" onclick="var n=document.getElementById('fName').value.trim();var p=document.getElementById('fPhone').value.trim();var loc=document.getElementById('fLocation').value.trim();if(!n){alert('Enter Name');return;}if(!p){alert('Enter Phone');return;}clients.push({id:Date.now(),name:n,phone:p,location:loc});saveAll();refreshAll();document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fLocation').value='';alert('SAVED! '+n);">✅ SAVE CLIENT</button>
+<div id="clientList" style="margin-top:10px;background:#f9f9f9;padding:10px;border:2px dashed green">No clients yet</div>
+  </div><div id="loans" class="card" style="display:none">
+<h3>💰 Give Loan</h3>
+<label>👥 Select Client *</label><select id="fClientSelect"><option>--Choose Client--</option></select>
+<label>💰 Amount *</label><input id="fAmount" type="number" placeholder="100000" oninput="var a=Number(this.value)||0;var pr=Number(document.getElementById('fInterest').value)||0;var tot=a+(a*pr/100);document.getElementById('totalPay').innerText=fmt(tot);document.getElementById('totalOnTime').innerText=fmt(tot);">
+<label>📈 Interest %</label><input id="fInterest" type="number" value="10" oninput="var a=Number(document.getElementById('fAmount').value)||0;var pr=Number(this.value)||0;var tot=a+(a*pr/100);document.getElementById('totalPay').innerText=fmt(tot);document.getElementById('totalOnTime').innerText=fmt(tot);">
+<label>📅 Days</label><input id="fDays" type="number" value="30">
+<div class="calcBox">✅ ON TIME: <b id="totalOnTime">0</b> | 💰 Total: <b id="totalPay">0</b></div>
+<button class="btn btn-blue" onclick="var cid=document.getElementById('fClientSelect').value;var amt=Number(document.getElementById('fAmount').value);var per=Number(document.getElementById('fInterest').value)||10;var days=Number(document.getElementById('fDays').value)||30;if(!cid||cid=='--Choose Client--'){alert('Select client');return;}if(!amt){alert('Enter amount');return;}var total=amt+(amt*per/100);var due=new Date();due.setDate(due.getDate()+days);loans.push({id:Date.now(),clientId:Number(cid),amount:amt,total:total,balance:total,status:'Active',dueDate:due.toISOString()});saveAll();var cl=getClient(Number(cid));var receipt='<div style=text-align:center><h2 style=color:#0b5c2f>CASHMERE</h2><p>Loan Receipt</p></div><div style=border:2px solid #0b5c2f;padding:12px;border-radius:10px><p>Client: <b>'+cl.name+'</b><br>Amount: <b>'+fmt(amt)+' UGX</b><br>Total: <b>'+fmt(total)+' UGX</b><br>Due: '+due.toLocaleDateString()+'</p></div>';document.getElementById('receiptContent').innerHTML=receipt;document.getElementById('receiptScreen').style.display='block';refreshAll();document.getElementById('fAmount').value='';alert('LOAN GIVEN '+cl.name);">💰 GIVE LOAN + PRINT RECEIPT</button>
+<div id="loanList" style="margin-top:10px"></div>
+</div>
+<div id="repay" class="card" style="display:none">
+<h3>💳 Repay</h3>
+<label>💰 Select Loan *</label><select id="fLoanSelect" onchange="var idx=Number(this.value);if(isNaN(idx)){curLoan=null;curClient=null;curLoanIndex=-1;return;}curLoan=loans[idx];curLoanIndex=idx;var cl=getClient(curLoan.clientId);curClient=cl;document.getElementById('loanInfo').style.display='block';document.getElementById('loanInfo').innerHTML='<b>'+cl.name+'</b><br>'+cl.phone+'<br>Bal '+fmt(curLoan.balance);"></select>
+<div id="loanInfo" style="display:none;background:#e8f5e9;padding:10px;border-left:4px solid green;margin:6px 0;border-radius:6px"></div>
+<label>💵 Amount Paid *</label><input id="fPay" type="number" placeholder="20000">
+<button class="btn btn-green" onclick="if(curLoanIndex<0||!curLoan){alert('Select loan first');return;}var amt=Number(document.getElementById('fPay').value);if(!amt){alert('Enter amount');return;}var loan=curLoan;var cl=curClient||{name:'Client',phone:''};if(amt>loan.balance){alert('Owes only '+fmt(loan.balance));return;}loan.balance-=amt;if(loan.balance<=0){loan.balance=0;loan.status='Paid';}var remain=loan.balance;var isFully=remain<=0;repays.push({clientName:cl.name,clientPhone:cl.phone,clientId:loan.clientId,amount:amt,date:new Date().toLocaleString(),remaining:remain});saveAll();var receipt='<div style=text-align:center><h2 style=color:#0b5c2f>CASHMERE</h2><p>Receipt</p><h3>'+(isFully?'FULLY PAID!':'RECEIPT')+'</h3></div><div style=border:2px solid #0b5c2f;padding:12px;border-radius:10px><p>Client: <b>'+cl.name+'</b><br>Paid: <b>'+fmt(amt)+' UGX</b><br>Remaining: <b>'+fmt(remain)+' UGX</b></p></div><div style=margin-top:10px;padding:10px;background:#e8f5e9;border:2px dashed #0b5c2f;border-radius:8px;font-weight:bold>'+(isFully?'THANK YOU '+cl.name+', cleared!':'Thank you '+cl.name)+'</div>';document.getElementById('receiptContent').innerHTML=receipt;document.getElementById('receiptScreen').style.display='block';refreshAll();document.getElementById('fPay').value='';curLoan=null;curClient=null;curLoanIndex=-1;alert(isFully?'FULLY PAID '+cl.name:'PAID '+cl.name+' '+fmt(amt));">✅ RECORD PAYMENT + RECEIPT</button>
+<div id="repayList" style="margin-top:10px;background:#f9f9f9;padding:10px;border:2px dashed #0b5c2f">No payments yet</div>
+</div>
+<div id="overdue" class="card" style="display:none">
+<h3 style="color:red">⚠️ Overdue + WhatsApp</h3>
+<p>Tap 💚 WHATSAPP REMIND - opens WhatsApp with message ready!</p>
+<div id="overdueBox"></div>
+</div>
+<div id="settings" class="card" style="display:none">
+<h3>⚙️ SETTINGS - Change Everything!</h3>
+<label>🏦 Enterprise Name (BLUE CENTER TOP)</label><input id="sCompany" value="CASHMERE MONEY LENDING">
+<label>📞 Phone</label><input id="sPhone" value="0784748006">
+<label>👤 Manager Name</label><input id="sManager" value="Isaac Savvy">
+<label>🔒 New Password</label><input id="sPass" placeholder="Leave empty to keep old" type="text">
+<p><b>Current Password:</b> <span id="curPass">1234</span></p>
+<button class="btn btn-green" onclick="saveSettings()">💾 SAVE SETTINGS</button>
+<p style="font-size:12px;color:#555">After save, top bar name changes instantly to BLUE CENTER. Password changes for next login.</p>
+<hr>
+<button class="btn btn-blue" onclick="exportFullSmall()">📊 BACKUP - EXPORT ALL</button>
+<button class="btn btn-red" onclick="if(confirm('Delete all?')){localStorage.clear();location.reload();}">🗑️ DELETE ALL DATA</button>
+</div>
+<script>
+function refreshAll(){
+var given=0,coll=0,out=0;
+for(var i=0;i<loans.length;i++){given+=Number(loans[i].amount||0);out+=Number(loans[i].balance||0);}
+for(var i=0;i<repays.length;i++){coll+=Number(repays[i].amount||0);}
+document.getElementById('statC').innerText=clients.length;
+var ac=0;for(var i=0;i<loans.length;i++){if(loans[i].status=='Active')ac++;}
+document.getElementById('statA').innerText=ac;
+document.getElementById('statGiven').innerText=fmt(given);
+document.getElementById('statColl').innerText=fmt(coll);
+document.getElementById('statOut').innerText=fmt(out);
+document.getElementById('statProfit').innerText=fmt(coll-given);
+renderClients();renderLoans();renderRepays();renderOverdue();renderLoanSelects();applyBranding();
+}
+function renderClients(filter){
+filter=(filter||'').toLowerCase();
+var html='<table><tr><th>Name</th><th>Phone</th><th>Place</th><th>WhatsApp</th><th>Del</th></tr>';var cnt=0;
+for(var i=0;i<clients.length;i++){
+if(filter&&clients[i].name.toLowerCase().indexOf(filter)==-1&&clients[i].phone.indexOf(filter)==-1)continue;cnt++;
+html+='<tr><td><b>'+clients[i].name+'</b></td><td>'+clients[i].phone+'</td><td>'+(clients[i].location||'')+'</td><td><button class="waBtn" onclick="sendWhatsApp('+clients[i].id+')">💚 WA</button></td><td><button class="smallBtn" style="background:#c62828" onclick="deleteClient('+clients[i].id+')">X</button></td></tr>';
+}
+html+='</table>';if(cnt==0)html='<p>No clients found</p>';
+document.getElementById('clientList').innerHTML=html;document.getElementById('dashList').innerHTML=html;
+}
+function deleteClient(id){if(!confirm('Delete client?'))return;var n=[];for(var i=0;i<clients.length;i++){if(clients[i].id!=id)n.push(clients[i]);}clients=n;saveAll();refreshAll();}
+function renderLoans(){
+var html='<table><tr><th>Name</th><th>Bal</th><th>Due</th><th>Status</th><th>WA</th><th>Del</th></tr>';
+for(var i=0;i<loans.length;i++){var c=getClient(loans[i].clientId);var due='';try{due=new Date(loans[i].dueDate).toLocaleDateString();}catch(e){}
+html+='<tr><td>'+c.name+'</td><td><b>'+fmt(loans[i].balance)+'</b></td><td>'+due+'</td><td>'+loans[i].status+'</td><td><button class="waBtn" onclick="sendWhatsAppLoan('+i+')">💚</button></td><td><button class="smallBtn" style="background:#c62828" onclick="deleteLoan('+i+')">X</button></td></tr>';}
+html+='</table>';document.getElementById('loanList').innerHTML=html;
+}
+function deleteLoan(idx){if(!confirm('Delete loan?'))return;loans.splice(idx,1);saveAll();refreshAll();curLoan=null;curLoanIndex=-1;}
+function renderRepays(){
+if(repays.length==0){document.getElementById('repayList').innerHTML='No payments yet';return;}
+var html='<table><tr><th>Client</th><th>Phone</th><th>Date</th><th>Amount</th><th>Remaining</th></tr>';
+for(var i=0;i<repays.length;i++){html+='<tr><td><b>'+repays[i].clientName+'</b></td><td>'+repays[i].clientPhone+'</td><td>'+repays[i].date+'</td><td>'+fmt(repays[i].amount)+'</td><td><b>'+fmt(repays[i].remaining)+'</b></td></tr>';}
+html+='</table>';document.getElementById('repayList').innerHTML=html;
+}
+function renderOverdue(){
+var now=new Date();var html='';
+for(var i=0;i<loans.length;i++){
+if(loans[i].status!='Active')continue;var due=new Date(loans[i].dueDate);
+if(due<now){var c=getClient(loans[i].clientId);
+html+='<div style="background:#ffecec;padding:10px;border-radius:8px;margin:6px 0"><div><b>'+c.name+'</b> - '+c.phone+'<br>Bal: <b>UGX '+fmt(loans[i].balance)+'</b><br>Due: '+due.toLocaleDateString()+'</div><div style="display:flex;gap:6px;margin-top:8px"><button class="waBtn" style="flex:1" onclick="sendWhatsAppLoan('+i+')">💚 WHATSAPP REMIND</button><button class="smallBtn" style="background:#0b5c2f;padding:8px;flex:1" onclick="goPage(\'repay\');document.getElementById(\'fLoanSelect\').value='+i+';document.getElementById(\'fLoanSelect\').onchange()">Collect</button></div></div>';
+}}
+if(!html)html='<p style="color:green"><b>No overdue! 🎉</b></p>';
+document.getElementById('overdueBox').innerHTML=html;
+}
+function renderLoanSelects(){
+var sel=document.getElementById('fClientSelect');sel.innerHTML='';var o=document.createElement('option');o.text='--Choose Client--';sel.appendChild(o);
+for(var i=0;i<clients.length;i++){var op=document.createElement('option');op.value=clients[i].id;op.text=clients[i].name+' - '+clients[i].phone;sel.appendChild(op);}
+var sel2=document.getElementById('fLoanSelect');sel2.innerHTML='';var o2=document.createElement('option');o2.text='--Choose Loan--';sel2.appendChild(o2);
+for(var i=0;i<loans.length;i++){if(loans[i].status=='Active'){var c=getClient(loans[i].clientId);var op2=document.createElement('option');op2.value=i;op2.text=c.name+' Bal '+fmt(loans[i].balance);sel2.appendChild(op2);}}
+}
+function exportFullSmall(){
+if(clients.length==0){alert('No data');return;}
+var csv='CASHMERE FULL\nName,Phone,Place\n';for(var i=0;i<clients.length;i++){csv+=clients[i].name+','+clients[i].phone+','+(clients[i].location||'')+'\n';}
+csv+='\nPAYMENTS\nClient,Phone,Date,Amount,Remaining\n';for(var i=0;i<repays.length;i++){csv+=repays[i].clientName+','+repays[i].clientPhone+','+repays[i].date+','+repays[i].amount+','+repays[i].remaining+'\n';}
+showExportScreen(csv,'Cashmere_v11_FULL.csv');
+}
+function exportPaysSmall(){
+if(repays.length==0){alert('No payments');return;}
+var csv='Client,Phone,Date,Amount,Remaining\n';for(var i=0;i<repays.length;i++){csv+=repays[i].clientName+','+repays[i].clientPhone+','+repays[i].date+','+repays[i].amount+','+repays[i].remaining+'\n';}
+showExportScreen(csv,'Cashmere_v11_Payments.csv');
+}
+function showExportScreen(csv,fileName){document.getElementById('exportText').value=csv;document.getElementById('exportFileName').innerText=fileName;document.getElementById('exportScreen').style.display='block';try{var blob=new Blob([csv],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);}catch(e){}}
+try{
+var c=localStorage.getItem('sc3_c');if(c){var p=JSON.parse(c);if(Array.isArray(p))clients=p;}
+var l=localStorage.getItem('sc3_l');if(l){var p=JSON.parse(l);if(Array.isArray(p))loans=p;}
+var r=localStorage.getItem('sc3_r');if(r){var p=JSON.parse(r);if(Array.isArray(p))repays=p;}
+}catch(e){clients=[];loans=[];repays=[];}
+document.getElementById('dateTop').innerText=new Date().toDateString();
+refreshAll();
+</script>
+</body>
+  </html>
