@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cashmere v11</title>
+<title>Cashmere v11.2</title>
 <style>
 *{box-sizing:border-box}body{font-family:Arial;margin:0;background:#eef3ee;padding-bottom:90px}
 .loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0b3d20;display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -54,6 +54,7 @@ for(var i=0;i<btns.length;i++){var b=document.getElementById(btns[i]);if(b)b.cla
 window.scrollTo(0,0);
 }
 function cleanPhone(p){p=(p||'').replace(/[^0-9]/g,'');if(p.length==10&&p.charAt(0)=='0')p='256'+p.substring(1);if(p.length==9)p='256'+p;return p;}
+function isValidUGPhone(p){p=(p||'').replace(/[^0-9]/g,'');return /^07\d{8}$/.test(p);}
 function sendWhatsApp(id){
 var c=getClient(id);var bal=0;var dueStr='';
 for(var i=0;i<loans.length;i++){if(loans[i].clientId==id&&loans[i].status=='Active'){bal+=Number(loans[i].balance);try{dueStr=new Date(loans[i].dueDate).toLocaleDateString();}catch(e){}}}
@@ -66,11 +67,25 @@ var msg='Hello '+c.name+', this is '+SET.company+'. Reminder: Your loan balance 
 window.open('https://wa.me/'+cleanPhone(c.phone)+'?text='+encodeURIComponent(msg),'_blank');
 }
 function saveSettings(){
+var newPhone=document.getElementById('sPhone').value.trim();
+if(newPhone && !isValidUGPhone(newPhone)){alert('Phone must be 07XXXXXXXX - 10 digits, starting with 07');return;}
 SET.company=document.getElementById('sCompany').value||SET.company;
-SET.phone=document.getElementById('sPhone').value||SET.phone;
+SET.phone=newPhone||SET.phone;
 SET.manager=document.getElementById('sManager').value||SET.manager;
 var np=document.getElementById('sPass').value.trim();if(np)SET.pass=np;
 saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
+}
+function addClient(){
+var n=document.getElementById('fName').value.trim();
+var p=document.getElementById('fPhone').value.trim();
+var loc=document.getElementById('fLocation').value.trim();
+if(!n){alert('Enter Name');return;}
+if(!p){alert('Enter Phone');return;}
+if(!isValidUGPhone(p)){alert('Phone must be 07XXXXXXXX - e.g. 0701234567');return;}
+clients.push({id:Date.now(),name:n,phone:p,location:loc});
+saveAll();refreshAll();
+document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fLocation').value='';
+alert('SAVED! '+n);
 }
 </script>
 </head>
@@ -78,7 +93,7 @@ saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
 <div id="loginScreen" class="loginScreen">
 <div class="loginBox">
 <h2 id="loginTitle" style="color:#0b5c2f">💰 CASHMERE MONEY LENDING</h2>
-<p>v11 - Password Protected</p>
+<p>v11.2 - Real Excel Export</p>
 <input id="loginPass" type="password" placeholder="Enter Password: 1234" value="1234">
 <button class="btn btn-green" onclick="doLogin()">🔒 UNLOCK ENTERPRISE</button>
 <p style="font-size:11px;color:#888">Default: 1234</p>
@@ -92,8 +107,9 @@ saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
 <div id="exportScreen" class="receiptScreen">
 <h2 style="color:#0b5c2f;text-align:center">📊 EXPORT EXCEL</h2>
 <p id="exportFileName" style="text-align:center;font-size:12px">Cashmere.csv</p>
-<textarea id="exportText" style="height:280px;font-size:11px"></textarea>
-<button class="btn btn-green" onclick="var ta=document.getElementById('exportText');ta.select();try{document.execCommand('copy');alert('COPIED!');}catch(e){alert('Select All Copy');}">📋 COPY</button>
+<p style="text-align:center;font-size:12px;color:green"><b>✅ File downloaded to your Downloads folder.<br>Open it in Excel / Google Sheets.<br>If it did not download, press COPY below.</b></p>
+<textarea id="exportText" style="height:200px;font-size:11px"></textarea>
+<button class="btn btn-green" onclick="var ta=document.getElementById('exportText');ta.select();try{document.execCommand('copy');alert('COPIED! Now paste in Excel');}catch(e){alert('Select All Copy');}">📋 COPY AS BACKUP</button>
 <button class="btn" style="background:#666" onclick="document.getElementById('exportScreen').style.display='none'">⬅️ CLOSE</button>
 </div>
 <div class="topBar">
@@ -113,30 +129,29 @@ saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
 </div>
 <div id="dash" class="card">
 <h2 id="dashTitle" style="text-align:center;color:#0b5c2f;margin:0">💰 CASHMERE MONEY LENDING</h2>
-<p style="text-align:center;font-size:11px">v11 - Password + WhatsApp + Blue Center Name!</p>
+<p style="text-align:center;font-size:11px">v11.2 - Real Excel Export</p>
 <div class="kpi">
 <div><small>👥 CLIENTS</small><br><b id="statC">0</b></div>
-<div><small>💰 ACTIVE</small><br><b id="statA">0</b></div>
+<div><small>💰 ACTIVE LOANS</small><br><b id="statA">0</b></div>
 <div><small>📤 GIVEN</small><br><b>UGX <span id="statGiven">0</span></b></div>
 <div><small>💵 COLLECTED</small><br><b>UGX <span id="statColl">0</span></b></div>
 <div><small>⚠️ OUTSTANDING</small><br><b>UGX <span id="statOut">0</span></b></div>
-<div><small>💎 PROFIT</small><br><b>UGX <span id="statProfit">0</span></b></div>
+<div><small>💎 EXPECTED PROFIT</small><br><b style="color:#0b5c2f">UGX <span id="statProfit">0</span></b></div>
 </div>
 <div id="dashList"></div>
 <hr>
-<button class="btn btn-blue" onclick="exportFullSmall()">📊 EXPORT FULL REPORT</button>
+<button class="btn btn-blue" onclick="exportFullSmall()">📊 EXPORT FULL REPORT - DIRECT TO EXCEL</button>
 <button class="btn btn-orange" onclick="exportPaysSmall()">💳 EXPORT PAYMENTS WITH NAMES</button>
 <button class="btn btn-purple" onclick="goPage('overdue')">⚠️ CHECK OVERDUE + WHATSAPP</button>
-</div>
-<div id="clients" class="card" style="display:none">
+  </div><div id="clients" class="card" style="display:none">
 <h3>👥 Add Client</h3>
 <label>🔍 Search</label><input placeholder="Type name or phone..." oninput="renderClients(this.value)">
 <label>👤 Full Name *</label><input id="fName" placeholder="James Kasule">
 <label>📞 Telephone *</label><input id="fPhone" placeholder="0701234567">
 <label>📍 Place</label><input id="fLocation" placeholder="Bwaise">
-<button class="btn btn-green" onclick="var n=document.getElementById('fName').value.trim();var p=document.getElementById('fPhone').value.trim();var loc=document.getElementById('fLocation').value.trim();if(!n){alert('Enter Name');return;}if(!p){alert('Enter Phone');return;}clients.push({id:Date.now(),name:n,phone:p,location:loc});saveAll();refreshAll();document.getElementById('fName').value='';document.getElementById('fPhone').value='';document.getElementById('fLocation').value='';alert('SAVED! '+n);">✅ SAVE CLIENT</button>
+<button class="btn btn-green" onclick="addClient()">✅ SAVE CLIENT</button>
 <div id="clientList" style="margin-top:10px;background:#f9f9f9;padding:10px;border:2px dashed green">No clients yet</div>
-  </div><div id="loans" class="card" style="display:none">
+</div><div id="loans" class="card" style="display:none">
 <h3>💰 Give Loan</h3>
 <label>👥 Select Client *</label><select id="fClientSelect"><option>--Choose Client--</option></select>
 <label>💰 Amount *</label><input id="fAmount" type="number" placeholder="100000" oninput="var a=Number(this.value)||0;var pr=Number(document.getElementById('fInterest').value)||0;var tot=a+(a*pr/100);document.getElementById('totalPay').innerText=fmt(tot);document.getElementById('totalOnTime').innerText=fmt(tot);">
@@ -162,7 +177,7 @@ saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
 <div id="settings" class="card" style="display:none">
 <h3>⚙️ SETTINGS - Change Everything!</h3>
 <label>🏦 Enterprise Name (BLUE CENTER TOP)</label><input id="sCompany" value="CASHMERE MONEY LENDING">
-<label>📞 Phone</label><input id="sPhone" value="0784748006">
+<label>📞 Phone (Must be 07XXXXXXXX)</label><input id="sPhone" value="0784748006">
 <label>👤 Manager Name</label><input id="sManager" value="Isaac Savvy">
 <label>🔒 New Password</label><input id="sPass" placeholder="Leave empty to keep old" type="text">
 <p><b>Current Password:</b> <span id="curPass">1234</span></p>
@@ -174,8 +189,12 @@ saveAll();refreshAll();alert('Settings saved! New Password: '+SET.pass);
 </div>
 <script>
 function refreshAll(){
-var given=0,coll=0,out=0;
-for(var i=0;i<loans.length;i++){given+=Number(loans[i].amount||0);out+=Number(loans[i].balance||0);}
+var given=0,coll=0,out=0,expectedProfit=0;
+for(var i=0;i<loans.length;i++){
+  given+=Number(loans[i].amount||0);
+  out+=Number(loans[i].balance||0);
+  expectedProfit+= (Number(loans[i].total||0) - Number(loans[i].amount||0));
+}
 for(var i=0;i<repays.length;i++){coll+=Number(repays[i].amount||0);}
 document.getElementById('statC').innerText=clients.length;
 var ac=0;for(var i=0;i<loans.length;i++){if(loans[i].status=='Active')ac++;}
@@ -183,7 +202,7 @@ document.getElementById('statA').innerText=ac;
 document.getElementById('statGiven').innerText=fmt(given);
 document.getElementById('statColl').innerText=fmt(coll);
 document.getElementById('statOut').innerText=fmt(out);
-document.getElementById('statProfit').innerText=fmt(coll-given);
+document.getElementById('statProfit').innerText=fmt(expectedProfit);
 renderClients();renderLoans();renderRepays();renderOverdue();renderLoanSelects();applyBranding();
 }
 function renderClients(filter){
@@ -226,18 +245,49 @@ for(var i=0;i<clients.length;i++){var op=document.createElement('option');op.val
 var sel2=document.getElementById('fLoanSelect');sel2.innerHTML='';var o2=document.createElement('option');o2.text='--Choose Loan--';sel2.appendChild(o2);
 for(var i=0;i<loans.length;i++){if(loans[i].status=='Active'){var c=getClient(loans[i].clientId);var op2=document.createElement('option');op2.value=i;op2.text=c.name+' Bal '+fmt(loans[i].balance);sel2.appendChild(op2);}}
 }
+function cleanCSV(v){
+  v=String(v==null?'':v);
+  if(v.indexOf(',')>-1 || v.indexOf('"')>-1 || v.indexOf('\n')>-1){
+    return '"'+v.replace(/"/g,'""')+'"';
+  }
+  return v;
+}
+function downloadCSV(csv,fileName){
+  var blob=new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=fileName;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},500);
+  document.getElementById('exportText').value=csv;
+  document.getElementById('exportFileName').innerText=fileName+' - Downloaded! Check Downloads folder';
+  document.getElementById('exportScreen').style.display='block';
+}
 function exportFullSmall(){
-if(clients.length==0){alert('No data');return;}
-var csv='CASHMERE FULL\nName,Phone,Place\n';for(var i=0;i<clients.length;i++){csv+=clients[i].name+','+clients[i].phone+','+(clients[i].location||'')+'\n';}
-csv+='\nPAYMENTS\nClient,Phone,Date,Amount,Remaining\n';for(var i=0;i<repays.length;i++){csv+=repays[i].clientName+','+repays[i].clientPhone+','+repays[i].date+','+repays[i].amount+','+repays[i].remaining+'\n';}
-showExportScreen(csv,'Cashmere_v11_FULL.csv');
+  if(clients.length==0){alert('No data');return;}
+  var csv='Name,Phone,Place,Total Given,Total Due,Balance,Status,Due Date\n';
+  for(var i=0;i<loans.length;i++){
+    var c=getClient(loans[i].clientId);
+    var due='';try{due=new Date(loans[i].dueDate).toISOString().slice(0,10);}catch(e){}
+    csv+=cleanCSV(c.name)+','+cleanCSV(c.phone)+','+cleanCSV(c.location||'')+','+loans[i].amount+','+loans[i].total+','+loans[i].balance+','+loans[i].status+','+due+'\n';
+  }
+  csv+='\nPAYMENTS\nClient,Phone,Date,Amount Paid,Remaining\n';
+  for(var i=0;i<repays.length;i++){
+    var d=String(repays[i].date).replace(/,/g,' ');
+    csv+=cleanCSV(repays[i].clientName)+','+cleanCSV(repays[i].clientPhone)+','+cleanCSV(d)+','+repays[i].amount+','+repays[i].remaining+'\n';
+  }
+  downloadCSV(csv,'Cashmere_FULL.csv');
 }
 function exportPaysSmall(){
-if(repays.length==0){alert('No payments');return;}
-var csv='Client,Phone,Date,Amount,Remaining\n';for(var i=0;i<repays.length;i++){csv+=repays[i].clientName+','+repays[i].clientPhone+','+repays[i].date+','+repays[i].amount+','+repays[i].remaining+'\n';}
-showExportScreen(csv,'Cashmere_v11_Payments.csv');
+  if(repays.length==0){alert('No payments');return;}
+  var csv='Client,Phone,Date,Amount Paid,Remaining\n';
+  for(var i=0;i<repays.length;i++){
+    var d=String(repays[i].date).replace(/,/g,' ');
+    csv+=cleanCSV(repays[i].clientName)+','+cleanCSV(repays[i].clientPhone)+','+cleanCSV(d)+','+repays[i].amount+','+repays[i].remaining+'\n';
+  }
+  downloadCSV(csv,'Cashmere_Payments.csv');
 }
-function showExportScreen(csv,fileName){document.getElementById('exportText').value=csv;document.getElementById('exportFileName').innerText=fileName;document.getElementById('exportScreen').style.display='block';try{var blob=new Blob([csv],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);}catch(e){}}
+function showExportScreen(csv,fileName){downloadCSV(csv,fileName);}
 try{
 var c=localStorage.getItem('sc3_c');if(c){var p=JSON.parse(c);if(Array.isArray(p))clients=p;}
 var l=localStorage.getItem('sc3_l');if(l){var p=JSON.parse(l);if(Array.isArray(p))loans=p;}
