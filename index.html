@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cashmere v11.2</title>
+<title>Cashmere </title>
 <style>
 *{box-sizing:border-box}body{font-family:Arial;margin:0;background:#eef3ee;padding-bottom:90px}
 .loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0b3d20;display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -25,11 +25,17 @@ table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid 
 .bottomNav button.active{background:#0b5c2f!important;color:white!important;border-bottom:4px solid yellow!important}
 .smallBtn{padding:4px 7px;border:none;border-radius:4px;color:white;font-size:11px;cursor:pointer}
 .waBtn{background:#25D366;color:white;border:none;padding:8px 10px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:12px}
+.licenseScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#062e1a;display:flex;align-items:center;justify-content:center;z-index:20000}
 </style>
 <script>
+var CASHMERE_KEYS=["CM-7392-4815","CM-9021-6748","CM-1584-9302","CM-4760-2851","CM-6209-1374"];
+function verifyCashmereKey(){
+var k=document.getElementById('licenseKeyInput').value.trim().toUpperCase();
+if(CASHMERE_KEYS.indexOf(k)>-1){localStorage.setItem('cashmere_license',k);document.getElementById('licenseScreen').style.display='none';alert('LICENSE ACTIVATED! Welcome to Cashmere');}else{alert('Invalid Key! Buy original from Isaac Savvy - 0770960837');}
+}
 var clients=[];var loans=[];var repays=[];
 var curLoan=null;var curClient=null;var curLoanIndex=-1;
-var SET={company:'CASHMERE MONEY LENDING',phone:'0784748006',manager:'Isaac Savvy',pass:'1234'};
+var SET={company:'CASHMERE MONEY LENDING',phone:'0770960837',manager:'Isaac Savvy',pass:'1234'};
 try{var s=localStorage.getItem('cashmere_set');if(s)SET=JSON.parse(s);}catch(e){}
 function fmt(n){return Number(n||0).toLocaleString();}
 function saveAll(){localStorage.setItem('sc3_c',JSON.stringify(clients));localStorage.setItem('sc3_l',JSON.stringify(loans));localStorage.setItem('sc3_r',JSON.stringify(repays));localStorage.setItem('cashmere_set',JSON.stringify(SET));}
@@ -53,8 +59,7 @@ var btns=['b1','b2','b3','b4','b5','b6'];
 for(var i=0;i<btns.length;i++){var b=document.getElementById(btns[i]);if(b)b.className=(btns[i]==map[p]?'active':'');}
 window.scrollTo(0,0);
 }
-function cleanPhone(p){p=(p||'').replace(/[^0-9]/g,'');if(p.length==10&&p.charAt(0)=='0')p='256'+p.substring(1);if(p.length==9)p='256'+p;return p;}
-function isValidUGPhone(p){p=(p||'').replace(/[^0-9]/g,'');return /^07\d{8}$/.test(p);}
+function cleanPhone(p){p=(p||'').replace(/[^0-9]/g,'');if(p.length==10&&p.charAt(0)=='0')p='256'+p.substring(1);if(p.length==9)p='256'+p;return p;}function isValidUGPhone(p){p=(p||'').replace(/[^0-9]/g,'');return /^07\d{8}$/.test(p);}
 function sendWhatsApp(id){
 var c=getClient(id);var bal=0;var dueStr='';
 for(var i=0;i<loans.length;i++){if(loans[i].clientId==id&&loans[i].status=='Active'){bal+=Number(loans[i].balance);try{dueStr=new Date(loans[i].dueDate).toLocaleDateString();}catch(e){}}}
@@ -90,16 +95,24 @@ alert('SAVED! '+n);
 </script>
 </head>
 <body>
+<div id="licenseScreen" class="licenseScreen">
+<div class="loginBox">
+<h2 style="color:#0b5c2f">🔑 CASHMERE LICENSE</h2>
+<p style="font-size:13px">Enter License Key to Activate<br>Buy from: Isaac Savvy - 0770960837</p>
+<input id="licenseKeyInput" type="text" placeholder="CM-XXXX-XXXX" style="text-transform:uppercase">
+<button class="btn btn-green" onclick="verifyCashmereKey()">✅ ACTIVATE</button>
+<p style="font-size:11px;color:#888">One key = One computer. Do not share.</p>
+</div>
+</div>
 <div id="loginScreen" class="loginScreen">
 <div class="loginBox">
 <h2 id="loginTitle" style="color:#0b5c2f">💰 CASHMERE MONEY LENDING</h2>
-<p>v11.2 - Real Excel Export</p>
+<p> Real Excel Export</p>
 <input id="loginPass" type="password" placeholder="Enter Password: 1234" value="1234">
 <button class="btn btn-green" onclick="doLogin()">🔒 UNLOCK ENTERPRISE</button>
 <p style="font-size:11px;color:#888">Default: 1234</p>
 </div>
-</div>
-<div id="receiptScreen" class="receiptScreen">
+  </div><div id="receiptScreen" class="receiptScreen">
 <div id="receiptContent"></div>
 <button class="btn btn-green" onclick="window.print()">🖨️ PRINT RECEIPT</button>
 <button class="btn btn-blue" onclick="document.getElementById('receiptScreen').style.display='none'">⬅️ CLOSE</button>
@@ -114,7 +127,7 @@ alert('SAVED! '+n);
 </div>
 <div class="topBar">
 <div class="center-brand"><span id="topCompany" class="blue-name">CASHMERE MONEY LENDING</span>
-<small id="topPhone">Management: Isaac Savvy - Tel: 0784748006</small>
+<small id="topPhone">Management: Isaac Savvy - Tel: 0770960837</small>
 <small id="dateTop" style="color:#ccc!important;font-weight:400"></small>
 </div>
 <button style="position:absolute;right:10px;top:12px;background:#ffcc33;border:none;padding:7px 10px;border-radius:7px;font-weight:bold" onclick="document.getElementById('loginScreen').style.display='flex'">🚪</button>
@@ -143,7 +156,7 @@ alert('SAVED! '+n);
 <button class="btn btn-blue" onclick="exportFullSmall()">📊 EXPORT FULL REPORT - DIRECT TO EXCEL</button>
 <button class="btn btn-orange" onclick="exportPaysSmall()">💳 EXPORT PAYMENTS WITH NAMES</button>
 <button class="btn btn-purple" onclick="goPage('overdue')">⚠️ CHECK OVERDUE + WHATSAPP</button>
-  </div><div id="clients" class="card" style="display:none">
+</div><div id="clients" class="card" style="display:none">
 <h3>👥 Add Client</h3>
 <label>🔍 Search</label><input placeholder="Type name or phone..." oninput="renderClients(this.value)">
 <label>👤 Full Name *</label><input id="fName" placeholder="James Kasule">
@@ -186,8 +199,7 @@ alert('SAVED! '+n);
 <hr>
 <button class="btn btn-blue" onclick="exportFullSmall()">📊 BACKUP - EXPORT ALL</button>
 <button class="btn btn-red" onclick="if(confirm('Delete all?')){localStorage.clear();location.reload();}">🗑️ DELETE ALL DATA</button>
-</div>
-<script>
+  </div><script>
 function refreshAll(){
 var given=0,coll=0,out=0,expectedProfit=0;
 for(var i=0;i<loans.length;i++){
@@ -294,7 +306,9 @@ var l=localStorage.getItem('sc3_l');if(l){var p=JSON.parse(l);if(Array.isArray(p
 var r=localStorage.getItem('sc3_r');if(r){var p=JSON.parse(r);if(Array.isArray(p))repays=p;}
 }catch(e){clients=[];loans=[];repays=[];}
 document.getElementById('dateTop').innerText=new Date().toDateString();
+var savedKey=localStorage.getItem('cashmere_license');
+if(savedKey && CASHMERE_KEYS.indexOf(savedKey)>-1){document.getElementById('licenseScreen').style.display='none';}else{document.getElementById('licenseScreen').style.display='flex';document.getElementById('loginScreen').style.display='none';}
 refreshAll();
 </script>
 </body>
-  </html>
+</html>
